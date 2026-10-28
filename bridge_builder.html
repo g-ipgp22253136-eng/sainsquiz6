@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>搭桥救朋友 - Bridge Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=ZCOOL+KuaiLe&display=swap');
+
+        body {
+            font-family: 'Fredoka', 'ZCOOL KuaiLe', sans-serif;
+            background: linear-gradient(180deg, #bae6fd 0%, #7dd3fc 40%, #38bdf8 100%);
+            touch-action: manipulation;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        /* Wood & Glass Theme Styling */
+        .wood-card {
+            background: #fff8f0;
+            border: 4px solid #854d0e;
+            box-shadow: 0 8px 0 #713f12, 0 12px 20px rgba(0,0,0,0.25);
+        }
+
+        .btn-wood {
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+            border: 3px solid #78350f;
+            box-shadow: 0 5px 0 #78350f, 0 6px 10px rgba(0,0,0,0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+
+        .btn-wood:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #78350f, 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .btn-green {
+            background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+            border: 3px solid #14532d;
+            box-shadow: 0 5px 0 #14532d, 0 6px 10px rgba(0,0,0,0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .btn-green:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #14532d, 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .option-card {
+            background: #ffffff;
+            border: 3px solid #cbd5e1;
+            box-shadow: 0 4px 0 #94a3b8;
+            transition: all 0.15s ease;
+        }
+
+        .option-card:hover {
+            transform: translateY(-2px);
+            border-color: #f59e0b;
+        }
+
+        .option-card.selected {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+            box-shadow: 0 4px 0 #059669;
+        }
+
+        .option-card.wrong {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+            box-shadow: 0 4px 0 #dc2626;
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-float {
+            animation: float-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between items-center relative overflow-hidden">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center p-4 z-50 bg-slate-900/70 backdrop-blur-md">
+        <div class="wood-card rounded-3xl p-6 md:p-8 max-w-lg w-full text-center flex flex-col items-center animate-float">
+            
+            <div class="w-24 h-24 bg-amber-100 rounded-3xl flex items-center justify-center mb-4 border-4 border-amber-800 shadow-md">
+                <span class="text-5xl">🌉</span>
+            </div>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold text-amber-950 mb-2 tracking-wide">
+                🌉 搭桥救朋友 🌉
+            </h1>
+            <p class="text-amber-800 font-bold mb-5 text-sm md:text-base">Bridge Builder · 探索材料与结构，搭桥越过小河吧！</p>
+
+            <div class="bg-amber-50 rounded-2xl p-4 mb-6 w-full text-left text-amber-950 text-xs md:text-sm space-y-2 border-2 border-amber-200">
+                <div class="flex items-center gap-2 font-black text-amber-900 border-b border-amber-300 pb-2">
+                    <i class="fa-solid fa-shapes text-amber-600"></i> 科学探索亮点：
+                </div>
+                <ul class="list-disc list-inside space-y-1 font-bold text-amber-800">
+                    <li>💡 辨别稳固与脆弱的建造材料</li>
+                    <li>📐 认识最稳固的几何结构（如三角形框架）</li>
+                    <li>🛠️ 选取正确积木配件，安全解救朋友</li>
+                </ul>
+            </div>
+
+            <button id="start-btn" class="btn-wood w-full py-4 rounded-2xl text-white font-black text-2xl tracking-wider uppercase">
+                <i class="fa-solid fa-play mr-2"></i> 开始搭建小桥！
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN GAMEPLAY AREA -->
+    <div id="game-ui" class="hidden w-full h-full flex flex-col justify-between relative z-10 p-2 md:p-4">
+        
+        <!-- HUD TOP BAR -->
+        <div class="w-full max-w-4xl mx-auto mb-2">
+            <div class="wood-card rounded-2xl p-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="bg-amber-100 px-3 py-1 rounded-xl border-2 border-amber-800 font-black text-amber-950 text-xs md:text-sm">
+                        关卡 <span id="level-display" class="text-amber-700 text-base">1/10</span>
+                    </div>
+                    <div class="bg-amber-400 px-3 py-1 rounded-xl border-2 border-amber-900 font-black text-amber-950 text-xs md:text-sm">
+                        ⭐ 得分: <span id="score-display">0</span>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-100 px-3 py-1 rounded-xl border-2 border-emerald-700 text-emerald-900 font-black text-xs md:text-sm flex items-center gap-1">
+                    <i class="fa-solid fa-heart text-pink-500"></i>
+                    <span>救救好朋友！</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- STAGE CANVAS AREA (RIVER & BRIDGE ANIMATION) -->
+        <div class="flex-1 w-full relative max-w-4xl mx-auto my-1 flex items-center justify-center" id="canvas-container">
+            <canvas id="bridgeCanvas" class="block rounded-3xl border-4 border-amber-900 shadow-2xl bg-sky-300"></canvas>
+        </div>
+
+        <!-- QUESTION & COMPONENT SELECTION MODAL PANEL -->
+        <div id="quiz-panel" class="w-full max-w-4xl mx-auto mt-2">
+            <div class="wood-card rounded-2xl p-4">
+                <div class="text-center mb-3">
+                    <span id="unit-tag" class="inline-block bg-amber-200 text-amber-900 text-xs font-black px-3 py-1 rounded-full border border-amber-400">
+                        单元：建筑套件与材料结构
+                    </span>
+                    <h2 id="question-text" class="text-base md:text-lg font-black text-amber-950 mt-1">
+                        加载科学问题中...
+                    </h2>
+                </div>
+
+                <!-- OPTIONS GRID -->
+                <div id="options-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Dynamic option buttons inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VICTORY MODAL -->
+    <div id="result-modal" class="hidden absolute inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div class="wood-card rounded-3xl p-8 max-w-md w-full text-center animate-float">
+            <div class="w-20 h-20 bg-amber-300 rounded-2xl border-4 border-amber-800 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fa-solid fa-trophy text-5xl text-amber-800"></i>
+            </div>
+            <h2 class="text-3xl font-black text-amber-950 mb-1">大获全胜！成功救出朋友！</h2>
+            <p class="text-amber-800 font-bold text-sm mb-6">你掌握了材料特征与稳固的搭建技巧！</p>
+
+            <div class="bg-amber-100 rounded-2xl p-4 mb-6 border-2 border-amber-300 font-black text-amber-950 space-y-2">
+                <div class="flex justify-between items-center text-base">
+                    <span>总分：</span>
+                    <span id="final-score" class="text-3xl text-emerald-600">1000</span>
+                </div>
+            </div>
+
+            <button id="restart-btn" class="btn-green w-full py-4 rounded-2xl text-white font-black text-xl tracking-wider uppercase">
+                <i class="fa-solid fa-rotate-right mr-2"></i> 再玩一次搭桥任务
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        // --- 10 CURRICULUM QUESTIONS (Materials, Stability & Structural Design) ---
+        const bridgeQuestions = [
+            {
+                unit: "材料选材：稳固性",
+                question: "要搭一座坚固不过折的桥，应该选择什么材料？",
+                options: [
+                    { label: "木头 / 钢材", icon: "🪵", correct: true, bridgeType: "wood" },
+                    { label: "薄纸张", icon: "📄", correct: false, bridgeType: "paper" },
+                    { label: "树叶", icon: "🍃", correct: false, bridgeType: "leaf" }
+                ],
+                explanation: "木头和钢材具有良好的硬度和抗弯曲能力！"
+            },
+            {
+                unit: "几何结构：稳定性",
+                question: "哪一种形状框架在受力时【最不易变形】最稳固？",
+                options: [
+                    { label: "长方形", icon: "▭", correct: false, bridgeType: "square" },
+                    { label: "三角形", icon: "🔺", correct: true, bridgeType: "truss" },
+                    { label: "平行四边形", icon: "▱", correct: false, bridgeType: "quad" }
+                ],
+                explanation: "三角形结构具有稳定性，不容易受力变形！"
+            },
+            {
+                unit: "防潮性能：材料特征",
+                question: "小河会弄湿桥底，哪种材料【防水且不会变软吸水】？",
+                options: [
+                    { label: "海绵", icon: "🧽", correct: false, bridgeType: "sponge" },
+                    { label: "石头 / 塑料", icon: "🪨", correct: true, bridgeType: "stone" },
+                    { label: "硬纸板", icon: "📦", correct: false, bridgeType: "paper" }
+                ],
+                explanation: "石头和塑料不吸水，遇水不会软化坍塌！"
+            },
+            {
+                unit: "建筑套件：支撑结构",
+                question: "要让桥梁不下塌，需要在桥底安装什么组件？",
+                options: [
+                    { label: "桥墩（支撑柱）", icon: "🏛️", correct: true, bridgeType: "pillars" },
+                    { label: "气球", icon: "🎈", correct: false, bridgeType: "balloon" },
+                    { label: "羽毛", icon: "🪶", correct: false, bridgeType: "feather" }
+                ],
+                explanation: "稳固的桥墩能将重量传导至地面！"
+            },
+            {
+                unit: "拱形力学",
+                question: "古代石桥常做成什么形状来承载重物？",
+                options: [
+                    { label: "向下弯曲", icon: "📉", correct: false, bridgeType: "dip" },
+                    { label: "向上拱起（拱形）", icon: "🌈", correct: true, bridgeType: "arch" },
+                    { label: "波浪形", icon: "〰️", correct: false, bridgeType: "wave" }
+                ],
+                explanation: "拱形结构能把上方的压力分散到两边！"
+            },
+            {
+                unit: "建筑部件：连接件",
+                question: "组装木质建筑组件时，用什么把两条木板牢牢固定？",
+                options: [
+                    { label: "水彩", icon: "🎨", correct: false, bridgeType: "paint" },
+                    { label: "螺丝与螺母", icon: "🔩", correct: true, bridgeType: "bolts" },
+                    { label: "橡皮筋", icon: "🩹", correct: false, bridgeType: "rubber" }
+                ],
+                explanation: "螺栓螺母是建筑套件中重要的紧固连接件！"
+            },
+            {
+                unit: "重力与底座",
+                question: "为了防止桥梁倾倒，桥的底座应该怎样设计？",
+                options: [
+                    { label: "底座要宽大平稳", icon: "🧱", correct: true, bridgeType: "wide_base" },
+                    { label: "底座越尖越好", icon: "🔻", correct: false, bridgeType: "sharp_base" },
+                    { label: "不需要底座", icon: "❌", correct: false, bridgeType: "no_base" }
+                ],
+                explanation: "宽大的底座能降低重心，增加稳定性！"
+            },
+            {
+                unit: "结构跨度",
+                question: "当河面太宽时，可以在河中间加设什么来增加承重？",
+                options: [
+                    { label: "中间加设支撑柱", icon: "💈", correct: true, bridgeType: "mid_pillar" },
+                    { label: "把桥板变薄", icon: "📏", correct: false, bridgeType: "thin_deck" },
+                    { label: "挂上小旗子", icon: "🚩", correct: false, bridgeType: "flags" }
+                ],
+                explanation: "中间支撑柱能有效缩短承重跨度！"
+            },
+            {
+                unit: "材料硬度比较",
+                question: "哪一种材料承受重量的能力最好，最不易断裂？",
+                options: [
+                    { label: "吸管", icon: "🥤", correct: false, bridgeType: "straw" },
+                    { label: "金属棒", icon: "🥖", correct: true, bridgeType: "metal" },
+                    { label: "冰淇淋木棍", icon: "🍦", correct: false, bridgeType: "stick" }
+                ],
+                explanation: "金属材料具备极高硬度与抗拉强度！"
+            },
+            {
+                unit: "终极建造工程师",
+                question: "一座既坚固又安全的好桥，需要具备哪些条件？",
+                options: [
+                    { label: "坚固材料 + 稳定结构", icon: "🏆", correct: true, bridgeType: "perfect" },
+                    { label: "只要颜色好看", icon: "🎨", correct: false, bridgeType: "pretty" },
+                    { label: "用轻软的羽毛建造", icon: "🪶", correct: false, bridgeType: "soft" }
+                ],
+                explanation: "合适的材料结合科学的几何结构才是建造的关键！"
+            }
+        ];
+
+        // --- GAME STATE VARIABLES ---
+        let currentLevel = 0;
+        let score = 0;
+        let canvas, ctx;
+        let isAnimating = false;
+
+        // Bridge Building States: 'quiz', 'building', 'walking', 'collapsed', 'success'
+        let bridgeState = 'quiz';
+
+        // Animated Character & Friend Position
+        let hero = { x: 80, y: 0, targetX: 80, state: 'idle' }; // idle, walking, falling, cheer
+        let friend = { x: 340, y: 0, state: 'waiting' };
+
+        // Built Bridge Parameters
+        let currentChoice = null;
+        let bridgeCollapseProgress = 0;
+
+        // Audio Effects Engine
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'select') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'build') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.15);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                osc.frequency.setValueAtTime(1046.5, now + 0.35);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        // --- INIT & SETUP ---
+        window.onload = () => {
+            canvas = document.getElementById('bridgeCanvas');
+            ctx = canvas.getContext('2d');
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', startGame);
+        };
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+            const w = Math.min(container.clientWidth, 800);
+            const h = Math.min(container.clientHeight, 360);
+            canvas.width = w;
+            canvas.height = h;
+        }
+
+        function startGame() {
+            currentLevel = 0;
+            score = 0;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-modal').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+
+            resizeCanvas();
+            loadLevel(currentLevel);
+
+            if (!isAnimating) {
+                isAnimating = true;
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function loadLevel(idx) {
+            const qData = bridgeQuestions[idx];
+            document.getElementById('level-display').innerText = `${idx + 1}/${bridgeQuestions.length}`;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('unit-tag').innerText = `单元：${qData.unit}`;
+            document.getElementById('question-text').innerText = qData.question;
+
+            // Reset Positions
+            const groundY = canvas.height * 0.72;
+            hero.x = canvas.width * 0.12;
+            hero.y = groundY;
+            hero.targetX = hero.x;
+            hero.state = 'idle';
+
+            friend.x = canvas.width * 0.88;
+            friend.y = groundY;
+            friend.state = 'waiting';
+
+            bridgeState = 'quiz';
+            currentChoice = null;
+            bridgeCollapseProgress = 0;
+
+            // Render Options Buttons
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = '';
+
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `option-card p-3 rounded-2xl flex flex-col items-center justify-center gap-1 font-black text-amber-950 text-sm cursor-pointer`;
+                btn.innerHTML = `
+                    <span class="text-3xl mb-1">${opt.icon}</span>
+                    <span>${opt.label}</span>
+                `;
+                btn.onclick = () => handleChoiceSelect(opt, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function handleChoiceSelect(option, btnElement) {
+            if (bridgeState !== 'quiz') return;
+
+            playSound('select');
+            currentChoice = option;
+
+            // Highlight chosen option
+            const allOptions = document.querySelectorAll('.option-card');
+            allOptions.forEach(el => el.classList.remove('selected', 'wrong'));
+
+            if (option.correct) {
+                btnElement.classList.add('selected');
+                playSound('build');
+                score += 100;
+                document.getElementById('score-display').innerText = score;
+
+                bridgeState = 'building';
+                setTimeout(() => startWalkingTest(true), 800);
+            } else {
+                btnElement.classList.add('wrong');
+                playSound('fail');
+
+                bridgeState = 'building';
+                setTimeout(() => startWalkingTest(false), 800);
+            }
+        }
+
+        function startWalkingTest(isCorrect) {
+            bridgeState = 'walking';
+            hero.state = 'walking';
+
+            if (isCorrect) {
+                hero.targetX = friend.x - 40;
+            } else {
+                hero.targetX = canvas.width * 0.5; // Walk to mid-river and collapse
+            }
+        }
+
+        // --- MAIN RENDER LOOP ---
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const groundY = h * 0.72;
+
+            const leftBankX = w * 0.25;
+            const rightBankX = w * 0.75;
+
+            // 1. Draw Sky & Clouds
+            ctx.fillStyle = '#7dd3fc';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.arc(w * 0.2, h * 0.2, 25, 0, Math.PI * 2);
+            ctx.arc(w * 0.25, h * 0.18, 35, 0, Math.PI * 2);
+            ctx.arc(w * 0.3, h * 0.2, 25, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Draw River Stream
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(leftBankX, groundY, rightBankX - leftBankX, h - groundY);
+
+            // Animated Waves
+            ctx.fillStyle = '#0369a1';
+            const time = Date.now() * 0.003;
+            for (let x = leftBankX; x < rightBankX; x += 30) {
+                let waveY = groundY + 15 + Math.sin(time + x * 0.05) * 4;
+                ctx.beginPath();
+                ctx.arc(x + 15, waveY, 10, 0, Math.PI);
+                ctx.fill();
+            }
+
+            // 3. Draw Left & Right River Banks
+            ctx.fillStyle = '#15803d'; // Grass
+            ctx.fillRect(0, groundY, leftBankX, 20);
+            ctx.fillRect(rightBankX, groundY, w - rightBankX, 20);
+
+            ctx.fillStyle = '#78350f'; // Dirt below
+            ctx.fillRect(0, groundY + 20, leftBankX, h - groundY - 20);
+            ctx.fillRect(rightBankX, groundY + 20, w - rightBankX, h - groundY - 20);
+
+            // 4. Draw Bridge based on Selection
+            if (currentChoice && bridgeState !== 'quiz') {
+                drawBridge(leftBankX, rightBankX, groundY, currentChoice);
+            }
+
+            // 5. Update & Draw Characters
+            updateCharacters(groundY, leftBankX, rightBankX);
+            drawCharacter(hero.x, hero.y, '🦸‍♂️', hero.state);
+            drawCharacter(friend.x, friend.y, '🐶', friend.state);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- DRAW BRIDGE GRAPHICS ---
+        function drawBridge(leftX, rightX, groundY, choice) {
+            const spanWidth = rightX - leftX;
+
+            ctx.save();
+
+            if (choice.correct) {
+                // STABLE BRIDGE TYPES
+                if (choice.bridgeType === 'truss' || choice.bridgeType === 'wood' || choice.bridgeType === 'perfect') {
+                    // Wooden / Truss Beams
+                    ctx.fillStyle = '#b45309';
+                    ctx.fillRect(leftX, groundY - 12, spanWidth, 14);
+
+                    // Pillars
+                    ctx.fillStyle = '#78350f';
+                    ctx.fillRect(leftX + spanWidth * 0.3, groundY, 16, canvas.height - groundY);
+                    ctx.fillRect(leftX + spanWidth * 0.7, groundY, 16, canvas.height - groundY);
+
+                    // Triangular Trusses
+                    ctx.strokeStyle = '#d97706';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    for (let x = leftX; x < rightX; x += 40) {
+                        ctx.moveTo(x, groundY - 12);
+                        ctx.lineTo(x + 20, groundY - 35);
+                        ctx.lineTo(x + 40, groundY - 12);
+                    }
+                    ctx.stroke();
+                } else if (choice.bridgeType === 'stone' || choice.bridgeType === 'arch' || choice.bridgeType === 'wide_base') {
+                    // Stone Arch Bridge
+                    ctx.fillStyle = '#64748b';
+                    ctx.beginPath();
+                    ctx.arc(leftX + spanWidth / 2, groundY + 40, spanWidth / 2, Math.PI, 0);
+                    ctx.fillRect(leftX, groundY - 14, spanWidth, 14);
+                    ctx.fill();
+
+                    // Stone texture markings
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(leftX, groundY - 14, spanWidth, 14);
+                } else {
+                    // Generic Solid Reinforced Bridge
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(leftX, groundY - 15, spanWidth, 16);
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(leftX + spanWidth * 0.5 - 10, groundY, 20, canvas.height - groundY);
+                }
+            } else {
+                // UNSTABLE / FAULTY BRIDGES (Collapse Animation)
+                if (bridgeState === 'collapsed') {
+                    bridgeCollapseProgress = Math.min(bridgeCollapseProgress + 0.05, 1);
+                }
+
+                const dip = bridgeCollapseProgress * 45;
+
+                ctx.save();
+                ctx.translate(leftX + spanWidth / 2, groundY);
+                ctx.rotate(bridgeCollapseProgress * 0.2);
+
+                if (choice.bridgeType === 'paper' || choice.bridgeType === 'sponge') {
+                    // Wet Soggy Paper / Sponge
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath();
+                    ctx.ellipse(0, dip / 2, spanWidth / 2, 8 + dip, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (choice.bridgeType === 'leaf') {
+                    // Weak Floating Leaf
+                    ctx.fillStyle = '#22c55e';
+                    ctx.beginPath();
+                    ctx.ellipse(0, dip, spanWidth / 2, 6, 0.1, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Broken Planks
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillRect(-spanWidth / 2, dip, spanWidth / 2 - 10, 10);
+                    ctx.fillRect(10, dip + 10, spanWidth / 2 - 10, 10);
+                }
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // --- CHARACTER ANIMATIONS & GAMEPLAY UPDATES ---
+        function updateCharacters(groundY, leftX, rightX) {
+            // Walk Interpolation
+            if (hero.state === 'walking') {
+                if (hero.x < hero.targetX) {
+                    hero.x += 2.5;
+                } else {
+                    // Arrived at target point
+                    if (currentChoice.correct) {
+                        hero.state = 'cheer';
+                        friend.state = 'cheer';
+                        bridgeState = 'success';
+                        playSound('win');
+                        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+
+                        setTimeout(() => nextLevel(), 1500);
+                    } else {
+                        // Collapse into river!
+                        hero.state = 'falling';
+                        bridgeState = 'collapsed';
+                        playSound('fail');
+
+                        setTimeout(() => {
+                            // Reset back to bank after falling
+                            hero.x = canvas.width * 0.12;
+                            hero.y = groundY;
+                            hero.state = 'idle';
+                            bridgeState = 'quiz';
+                        }, 1200);
+                    }
+                }
+            }
+
+            // Falling Physics
+            if (hero.state === 'falling') {
+                hero.y = Math.min(hero.y + 4, groundY + 45);
+            } else {
+                hero.y = groundY - 12;
+            }
+
+            friend.y = groundY - 12;
+        }
+
+        function drawCharacter(x, y, emoji, state) {
+            ctx.save();
+            ctx.font = '32px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            let bounceY = 0;
+            if (state === 'walking') {
+                bounceY = Math.sin(Date.now() * 0.015) * 5;
+            } else if (state === 'cheer') {
+                bounceY = Math.abs(Math.sin(Date.now() * 0.02)) * -12;
+            }
+
+            ctx.fillText(emoji, x, y + bounceY);
+            ctx.restore();
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= bridgeQuestions.length) {
+                endGame();
+            } else {
+                loadLevel(currentLevel);
+            }
+        }
+
+        function endGame() {
+            bridgeState = 'quiz';
+            document.getElementById('result-modal').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+        }
+    </script>
+</body>
+</html>
